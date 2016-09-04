@@ -436,13 +436,13 @@ impl FromJson<Point> for Point {
 // Utility stuff
 
 fn check_variable_index(i: usize, model: &OdeModel) -> Option<String> {
-    if i < model.variables.len() {
+    if i >= model.variables.len() {
         Some(format!("Invalid variable index: {}", i))
     } else { None }
 }
 
 fn check_parameter_index(i: usize, model: &OdeModel) -> Option<String> {
-    if i < model.parameters.len() {
+    if i >= model.parameters.len() {
         Some(format!("Invalid parameter index: {}", i))
     } else { None }
 }
