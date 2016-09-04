@@ -29,7 +29,7 @@ impl OdeModel {
     }
 
     pub fn is_multi_affine(&self) -> bool {
-        false
+        self.variables.iter().all(|i| i.is_multi_affine())
     }
 }
 
@@ -79,6 +79,10 @@ impl Variable {
         }).or_else(|| {
             self.equation.iter().fold(None, |a, i| a.or_else(|| i.is_valid(model)))
         })
+    }
+
+    fn is_multi_affine(&self) -> bool {
+        self.equation.iter().all(|i| i.is_multi_affine())
     }
 }
 
@@ -230,6 +234,10 @@ impl Summand {
             })
         })
     }
+
+    fn is_multi_affine(&self) -> bool {
+        self.evaluables.iter().all(|i| i.is_multi_affine())
+    }
 }
 
 impl ToJson for Summand {
@@ -288,6 +296,15 @@ impl Evaluable {
         }
     }
 
+    fn is_multi_affine(&self) -> bool {
+        match self {
+            &Hill { .. } => false,
+            &Sigmoid { .. } => false,
+            &Step { .. } => true,
+            &Ramp { .. } => true,
+            &RampApproximation { .. } => true
+        }
+    }
 
 }
 
