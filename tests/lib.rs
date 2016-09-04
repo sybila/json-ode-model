@@ -104,7 +104,18 @@ fn not_multi_affine() {
                 equation: vec!(
                     Summand { constant: 1.0, variable_indices: vec!(),
                         parameter_indices: vec!(), evaluables: vec!(
-                            Evaluable::Hill { variable_index: 0, theta: 1.2, n: 5.0, a: 1.0, b: 2.0 },
+                            Evaluable::Hill { variable_index: 0, theta: 1.2, n: 5.0, a: 1.0, b: 2.0 }
+                        )
+                    }
+                )
+            }
+    )}.is_multi_affine());
+    assert!(!OdeModel { name: "Not Affine".to_string(), parameters: vec!(), variables: vec!(
+        Variable { name: "var1".to_string(), range: Range { min: 1.0, max: 15.0 },
+                thresholds: vec!(2.0, 5.0), var_points: None,
+                equation: vec!(
+                    Summand { constant: 1.0, variable_indices: vec!(),
+                        parameter_indices: vec!(), evaluables: vec!(
                             Evaluable::Sigmoid { variable_index: 1, theta: 2.2, k: 5.0, a: 1.0, b: 2.0 },
                         )
                     }
