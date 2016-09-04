@@ -15,6 +15,24 @@ pub struct OdeModel {
     pub parameters: Vec<Parameter>
 }
 
+impl OdeModel {
+
+    /// Check validity and if the model is invalid, return the cause.
+    pub fn is_valid(&self) -> Option<String> {
+        self.parameters.iter().fold(None, |a, i| a.or_else(|| i.is_valid())).or_else(|| {
+            if self.variables.is_empty() {
+                Some("Model has no variables".to_string())
+            } else { None }
+        }).or_else(|| {
+            self.variables.iter().fold(None, |a, i| a.or_else(|| i.is_valid(self)))
+        })
+    }
+
+    pub fn is_multi_affine(&self) -> bool {
+        false
+    }
+}
+
 impl ToJson for OdeModel {
     fn to_json(&self) -> Json {
         create_object(|map| {
@@ -46,6 +64,22 @@ pub struct Variable {
     pub thresholds: Vec<f64>,
     pub var_points: Option<VarPoints>,
     pub equation: Vec<Summand>
+}
+
+impl Variable {
+    fn is_valid(&self, model: &OdeModel) -> Option<String> {
+        self.range.is_valid().or_else(|| {
+            if self.thresholds.is_empty() {
+                Some(format!("Variable {} has no thresholds", self.name))
+            } else { None }
+        }).or_else(|| {
+            if self.equation.is_empty() {
+                Some(format!("Variable {} has an empty equation", self.name))
+            } else { None }
+        }).or_else(|| {
+            self.equation.iter().fold(None, |a, i| a.or_else(|| i.is_valid(model)))
+        })
+    }
 }
 
 impl ToJson for Variable {
@@ -110,6 +144,12 @@ pub struct Parameter {
     pub range: Range
 }
 
+impl Parameter {
+    fn is_valid(&self) -> Option<String> {
+        self.range.is_valid()
+    }
+}
+
 impl ToJson for Parameter {
     fn to_json(&self) -> Json {
         create_object(|map| {
@@ -136,6 +176,14 @@ impl FromJson<Parameter> for Parameter {
 pub struct Range {
     pub min: f64,
     pub max: f64,
+}
+
+impl Range {
+    fn is_valid(&self) -> Option<String> {
+        if self.min >= self.max {
+            Some(format!("Empty range: {} >= {}", self.min, self.max))
+        } else { None }
+    }
 }
 
 impl ToJson for Range {
@@ -166,6 +214,22 @@ pub struct Summand {
     pub variable_indices: Vec<usize>,
     pub parameter_indices: Vec<usize>,
     pub evaluables: Vec<Evaluable>
+}
+
+impl Summand {
+    fn is_valid(&self, model: &OdeModel) -> Option<String> {
+        self.variable_indices.iter().fold(None, |a, i| {
+            a.or_else(|| check_variable_index(*i, model))
+        }).or_else(|| {
+            self.parameter_indices.iter().fold(None, |a, i| {
+                a.or_else(|| check_parameter_index(*i, model))
+            })
+        }).or_else(|| {
+            self.evaluables.iter().fold(None, |a, i| {
+                a.or_else(|| i.is_valid(model))
+            })
+        })
+    }
 }
 
 impl ToJson for Summand {
@@ -205,6 +269,26 @@ pub enum Evaluable {
     Step { variable_index: usize, theta: f64, a: f64, b: f64 },
     Ramp { variable_index: usize, low: f64, high: f64, a: f64, b: f64 },
     RampApproximation { variable_index: usize, approximation: Vec<Point> }
+}
+
+impl Evaluable {
+    fn is_valid(&self, model: &OdeModel) -> Option<String> {
+        match self {
+            &Hill { variable_index, .. } => check_variable_index(variable_index, model),
+            &Sigmoid { variable_index, .. } => check_variable_index(variable_index, model),
+            &Step { variable_index, .. } => check_variable_index(variable_index, model),
+            &Ramp { variable_index, .. } => check_variable_index(variable_index, model),
+            &RampApproximation { variable_index, ref approximation } => {
+                check_variable_index(variable_index, model).or_else(|| {
+                    if approximation.is_empty() {
+                        Some("RampApproximation with no points".to_string())
+                    } else { None }
+                })
+            }
+        }
+    }
+
+
 }
 
 impl ToJson for Evaluable {
@@ -331,4 +415,18 @@ impl FromJson<Point> for Point {
             }) })
         })
     }
+}
+
+// Utility stuff
+
+fn check_variable_index(i: usize, model: &OdeModel) -> Option<String> {
+    if i < model.variables.len() {
+        Some(format!("Invalid variable index: {}", i))
+    } else { None }
+}
+
+fn check_parameter_index(i: usize, model: &OdeModel) -> Option<String> {
+    if i < model.parameters.len() {
+        Some(format!("Invalid parameter index: {}", i))
+    } else { None }
 }
