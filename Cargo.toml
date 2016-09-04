@@ -1,0 +1,11 @@
+[package]
+name = "ode_model"
+version = "0.1.0"
+authors = ["Samuel Pastva <daemontus@gmail.com>"]
+
+[lib]
+name = "ode_model"
+path = "src/lib.rs"
+
+[dependencies]
+rustc-serialize = "0.3.19"
