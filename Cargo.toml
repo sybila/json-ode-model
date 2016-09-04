@@ -9,3 +9,4 @@ path = "src/lib.rs"
 
 [dependencies]
 rustc-serialize = "0.3.19"
+json_utils = { git = "https://github.com/daemontus/rust_json_utils.git" }
