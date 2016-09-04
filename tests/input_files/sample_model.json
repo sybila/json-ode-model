@@ -1,0 +1,35 @@
+{
+  "name": "Sample Model",
+  "variables": [
+    {
+      "name": "var1", "range": { "min": 0, "max": 10 },
+      "thresholds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "varPoints": { "pointCount": 100, "segmentCount": 10 },
+      "equation": [
+        { "constant": 2 },
+        { "constant": 1, "variableIndices": [1], "parameterIndices": [0, 1] },
+        { "constant": 1, "variableIndices": [0], "evaluables": [
+          { "type": "hill", "variableIndex": 0, "theta": 1.2, "n": 5, "a": 1, "b": 2 },
+          { "type": "sigmoid", "variableIndex": 1, "theta": 2.2, "k": 5, "a": 1, "b": 2 },
+          { "type": "step", "variableIndex": 1, "theta": 0.9, "a": 1, "b": 2 },
+          { "type": "ramp", "variableIndex": 0, "lowThreshold": 1.2, "highThreshold": 3.3, "a": 1, "b": 2 },
+          { "type": "ramp_approximation", "variableIndex": 1, "approximation": [
+            { "threshold": 2, "value": 5 }, { "threshold": 3, "value": 8 },
+            { "threshold": 4, "value": 6 }, { "threshold": 6, "value": 7 }
+          ]}
+        ]}
+      ]
+    },
+    {
+      "name": "var2", "range": { "min": 1, "max": 15 },
+      "thresholds": [2,3,4,5],
+      "equation": [
+        { "constant": 1 }
+      ]
+    }
+  ],
+  "parameters": [
+    { "name": "p1", "range": { "min": 1, "max": 2 }},
+    { "name": "p2", "range": { "min": 1.5, "max": 2.8 }}
+  ]
+}

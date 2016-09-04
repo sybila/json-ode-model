@@ -66,7 +66,7 @@ impl FromJson<Variable> for Variable {
             map.read_item::<String>("name").and_then(|n| {
             map.read_item::<Range>("range").and_then(|r| {
             map.read_item::<Vec<f64>>("thresholds").and_then(|th| {
-            map.read_item::<Option<VarPoints>>("varPoints").and_then(|vp| {
+            map.read_optional_item::<VarPoints>("varPoints").and_then(|vp| {
             map.read_item::<Vec<Summand>>("equation").and_then(|eq| {
                 Ok(Variable { name: n, range: r, thresholds: th, var_points: vp, equation: eq})
             }) }) }) }) })
