@@ -46,11 +46,11 @@ impl ToJson for OdeModel {
 impl FromJson<OdeModel> for OdeModel {
     fn from_json(json: &Json) -> Result<OdeModel, DecoderError> {
         as_object(json, |map| {
-            map.read_item::<String>("name").and_then(|name| {
-            map.read_item::<Vec<Parameter>>("parameters").and_then(|params| {
-            map.read_item::<Vec<Variable>>("variables").and_then(|vars| {
-                Ok(OdeModel { name: name, parameters: params, variables: vars })
-            }) }) })
+            Ok(OdeModel {
+                name: try!(map.read_item::<String>("name")),
+                parameters: try!(map.read_item::<Vec<Parameter>>("parameters")),
+                variables: try!(map.read_item::<Vec<Variable>>("variables"))
+            })
         })
     }
 }
@@ -101,13 +101,13 @@ impl ToJson for Variable {
 impl FromJson<Variable> for Variable {
     fn from_json(json: &Json) -> Result<Variable, DecoderError> {
         as_object(json, |map| {
-            map.read_item::<String>("name").and_then(|n| {
-            map.read_item::<Range>("range").and_then(|r| {
-            map.read_item::<Vec<f64>>("thresholds").and_then(|th| {
-            map.read_optional_item::<VarPoints>("varPoints").and_then(|vp| {
-            map.read_item::<Vec<Summand>>("equation").and_then(|eq| {
-                Ok(Variable { name: n, range: r, thresholds: th, var_points: vp, equation: eq})
-            }) }) }) }) })
+            Ok(Variable {
+                name: try!(map.read_item::<String>("name")),
+                range: try!(map.read_item::<Range>("range")),
+                thresholds: try!(map.read_item::<Vec<f64>>("thresholds")),
+                var_points: try!(map.read_optional_item::<VarPoints>("varPoints")),
+                equation: try!(map.read_item::<Vec<Summand>>("equation"))
+            })
         })
     }
 }
@@ -132,10 +132,10 @@ impl ToJson for VarPoints {
 impl FromJson<VarPoints> for VarPoints {
     fn from_json(json: &Json) -> Result<VarPoints, DecoderError> {
         as_object(json, |map| {
-            map.read_item::<u64>("pointCount").and_then(|pc| {
-            map.read_item::<u64>("segmentCount").and_then(|sc| {
-                Ok(VarPoints { point_count: pc, segment_count: sc })
-            }) })
+            Ok(VarPoints {
+                point_count: try!(map.read_item::<u64>("pointCount")),
+                segment_count: try!(map.read_item::<u64>("segmentCount"))
+            })
         })
     }
 }
@@ -166,10 +166,10 @@ impl ToJson for Parameter {
 impl FromJson<Parameter> for Parameter {
     fn from_json(json: &Json) -> Result<Parameter, DecoderError> {
         as_object(json, |map| {
-            map.read_item::<String>("name").and_then(|name| {
-            map.read_item::<Range>("range").and_then(|range| {
-                Ok(Parameter { name: name, range: range })
-            }) })
+            Ok(Parameter {
+                name: try!(map.read_item::<String>("name")),
+                range: try!(map.read_item::<Range>("range"))
+            })
         })
     }
 }
@@ -202,10 +202,10 @@ impl ToJson for Range {
 impl FromJson<Range> for Range {
     fn from_json(json: &Json) -> Result<Range, DecoderError> {
         as_object(json, |map| {
-            map.read_item::<f64>("min").and_then(|min| {
-            map.read_item::<f64>("max").and_then(|max| {
-                Ok(Range { min: min, max: max} )
-            }) })
+            Ok(Range {
+                min: try!(map.read_item::<f64>("min")),
+                max: try!(map.read_item::<f64>("max"))
+            })
         })
     }
 }
@@ -254,16 +254,15 @@ impl ToJson for Summand {
 impl FromJson<Summand> for Summand {
     fn from_json(json: &Json) -> Result<Summand, DecoderError> {
         as_object(json, |map| {
-            map.read_item::<f64>("constant").and_then(|c| {
-            map.read_optional_item::<Vec<u64>>("variableIndices").and_then(|vi| {
-            map.read_optional_item::<Vec<u64>>("parameterIndices").and_then(|pi| {
-            map.read_optional_item::<Vec<Evaluable>>("evaluables").and_then(|eval| {
-                Ok(Summand { constant: c,
-                    variable_indices: vi.unwrap_or(vec!()).iter().map(|i| *i as usize).collect(),
-                    parameter_indices: pi.unwrap_or(vec!()).iter().map(|i| *i as usize).collect(),
-                    evaluables: eval.unwrap_or(vec!())
-                })
-            }) }) }) })
+            Ok(Summand {
+                constant: try!(map.read_item::<f64>("constant")),
+                variable_indices: try!(map.read_optional_item::<Vec<u64>>("variableIndices"))
+                    .unwrap_or(vec!()).iter().map(|i| *i as usize).collect(),
+                parameter_indices: try!(map.read_optional_item::<Vec<u64>>("parameterIndices"))
+                    .unwrap_or(vec!()).iter().map(|i| *i as usize).collect(),
+                evaluables: try!(map.read_optional_item::<Vec<Evaluable>>("evaluables"))
+                    .unwrap_or(vec!())
+            })
         })
     }
 }
@@ -359,45 +358,45 @@ impl FromJson<Evaluable> for Evaluable {
             map.read_item::<String>("type").and_then(|t| {
                 match t.as_ref() {
                     "hill" => {
-                        map.read_item::<u64>("variableIndex").and_then(|vi| {
-                        map.read_item::<f64>("theta").and_then(|t| {
-                        map.read_item::<f64>("n").and_then(|n| {
-                        map.read_item::<f64>("a").and_then(|a| {
-                        map.read_item::<f64>("b").and_then(|b| {
-                            Ok(Hill { variable_index: vi as usize, theta: t, n: n, a: a, b: b })
-                        }) }) }) }) })
+                        Ok(Hill {
+                            variable_index: try!(map.read_item::<u64>("variableIndex")) as usize,
+                            theta: try!(map.read_item::<f64>("theta")),
+                            n: try!(map.read_item::<f64>("n")),
+                            a: try!(map.read_item::<f64>("a")),
+                            b: try!(map.read_item::<f64>("b"))
+                        })
                     }
                     "sigmoid" => {
-                        map.read_item::<u64>("variableIndex").and_then(|vi| {
-                        map.read_item::<f64>("theta").and_then(|t| {
-                        map.read_item::<f64>("k").and_then(|k| {
-                        map.read_item::<f64>("a").and_then(|a| {
-                        map.read_item::<f64>("b").and_then(|b| {
-                            Ok(Sigmoid { variable_index: vi as usize, theta: t, k: k, a: a, b: b })
-                        }) }) }) }) })
+                        Ok(Sigmoid {
+                            variable_index: try!(map.read_item::<u64>("variableIndex")) as usize,
+                            theta: try!(map.read_item::<f64>("theta")),
+                            k: try!(map.read_item::<f64>("k")),
+                            a: try!(map.read_item::<f64>("a")),
+                            b: try!(map.read_item::<f64>("b"))
+                        })
                     }
                     "step" => {
-                        map.read_item::<u64>("variableIndex").and_then(|vi| {
-                        map.read_item::<f64>("theta").and_then(|t| {
-                        map.read_item::<f64>("a").and_then(|a| {
-                        map.read_item::<f64>("b").and_then(|b| {
-                            Ok(Step { variable_index: vi as usize, theta: t, a: a, b: b })
-                        }) }) }) })
+                        Ok(Step {
+                            variable_index: try!(map.read_item::<u64>("variableIndex")) as usize,
+                            theta: try!(map.read_item::<f64>("theta")),
+                            a: try!(map.read_item::<f64>("a")),
+                            b: try!(map.read_item::<f64>("b"))
+                        })
                     }
                     "ramp" => {
-                        map.read_item::<u64>("variableIndex").and_then(|vi| {
-                        map.read_item::<f64>("lowThreshold").and_then(|lt| {
-                        map.read_item::<f64>("highThreshold").and_then(|ht| {
-                        map.read_item::<f64>("a").and_then(|a| {
-                        map.read_item::<f64>("b").and_then(|b| {
-                            Ok(Ramp { variable_index: vi as usize, low: lt, high: ht, a: a, b: b })
-                        }) }) }) }) })
+                        Ok(Ramp {
+                            variable_index: try!(map.read_item::<u64>("variableIndex")) as usize,
+                            low: try!(map.read_item::<f64>("lowThreshold")),
+                            high: try!(map.read_item::<f64>("highThreshold")),
+                            a: try!(map.read_item::<f64>("a")),
+                            b: try!(map.read_item::<f64>("b"))
+                        })
                     }
                     "ramp_approximation" => {
-                        map.read_item::<u64>("variableIndex").and_then(|vi| {
-                        map.read_item::<Vec<Point>>("approximation").and_then(|a| {
-                           Ok(RampApproximation { variable_index: vi as usize, approximation: a })
-                        }) })
+                       Ok(RampApproximation {
+                           variable_index: try!(map.read_item::<u64>("variableIndex")) as usize,
+                           approximation: try!(map.read_item::<Vec<Point>>("approximation"))
+                       })
                     }
                     other => Err(DecoderError::UnknownVariantError(other.to_string()))
                 }
@@ -426,10 +425,10 @@ impl ToJson for Point {
 impl FromJson<Point> for Point {
     fn from_json(json: &Json) -> Result<Point, DecoderError> {
         as_object(json, |map| {
-            map.read_item::<f64>("threshold").and_then(|tr| {
-            map.read_item::<f64>("value").and_then(|val| {
-               Ok(Point { threshold: tr, value: val })
-            }) })
+           Ok(Point {
+               threshold: try!(map.read_item::<f64>("threshold")),
+               value: try!(map.read_item::<f64>("value"))
+           })
         })
     }
 }
