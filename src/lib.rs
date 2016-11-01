@@ -1,8 +1,25 @@
+#[macro_use]
+extern crate lazy_static;
 extern crate json_utils;
 extern crate rustc_serialize;
 
 use json_utils::{FromJson, JsonMap, create_object, as_object};
 use rustc_serialize::json::{ToJson, Json, DecoderError};
+
+use self::model::Model;
+use self::model::Threshold;
+use self::types::Interval;
+use self::model::Summand2;
+use self::model::evaluable::Evaluable2;
+use self::model::evaluable::Function;
+
+pub mod parameters;
+pub mod parser;
+pub mod generator;
+pub mod formula;
+pub mod checker;
+pub mod types;
+pub mod model;
 
 use Evaluable::*;
 
@@ -26,6 +43,22 @@ impl OdeModel {
         }).or_else(|| {
             self.variables.iter().fold(None, |a, i| a.or_else(|| i.is_valid(self)))
         })
+    }
+
+    pub fn compile(&self) -> Model {
+        if !self.is_multi_affine() {
+            panic!["Your model is not multi affine."];
+        }
+        let parameter_bound: Vec<Interval> = self.parameters.iter().map(|&Parameter { ref range, .. }| {
+            Interval(range.min, range.max)
+        }).collect();
+        let variables: Vec<Vec<Threshold>> = self.variables.iter().map(|var| {
+            var.thresholds.clone()
+        }).collect();
+        let equations: Vec<Vec<Summand2>> = self.variables.iter().map(|var| {
+            var.equation.iter().map(|i| i.compile()).collect()
+        }).collect();
+        Model::new(parameter_bound, variables, equations)
     }
 
     pub fn is_multi_affine(&self) -> bool {
@@ -221,6 +254,14 @@ pub struct Summand {
 }
 
 impl Summand {
+    fn compile(&self) -> Summand2 {
+        Summand2 {
+            multiplier: self.constant,
+            variable_indices: self.variable_indices.clone(),
+            parameter_indices: self.parameter_indices.clone(),
+            functions: self.evaluables.iter().map(|e| { e.compile() }).collect()
+        }
+    }
     fn is_valid(&self, model: &OdeModel) -> Option<String> {
         self.variable_indices.iter().fold(None, |a, i| {
             a.or_else(|| check_variable_index(*i, model))
@@ -279,6 +320,31 @@ pub enum Evaluable {
 }
 
 impl Evaluable {
+    fn compile(&self) -> Evaluable2 {
+        match self {
+            &Step { variable_index, theta, a, b } => {
+                Evaluable2(variable_index, Function::Step {
+                    a: a, b: b, theta: theta
+                })
+            }
+            &Ramp { variable_index, low, high, a, b } => {
+                Evaluable2(variable_index, Function::Ramp {
+                    a: a, b: b, low: low, high: high
+                })
+            }
+            &RampApproximation { variable_index, ref approximation } => {
+                Evaluable2(variable_index, Function::Approximation {
+                    thresholds: approximation.iter().map(|&Point { threshold, .. }| {
+                        threshold
+                    }).collect(),
+                    values: approximation.iter().map(|&Point { value, .. }| {
+                        value
+                    }).collect()
+                })
+            }
+            _ => panic!["Function is not multi affine"]
+        }
+    }
     fn is_valid(&self, model: &OdeModel) -> Option<String> {
         match self {
             &Hill { variable_index, .. } => check_variable_index(variable_index, model),

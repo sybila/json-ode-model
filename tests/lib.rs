@@ -2,14 +2,16 @@ extern crate ode_model;
 extern crate rustc_serialize;
 extern crate json_utils;
 
-use ode_model::*;
-use rustc_serialize::json::Json;
-use rustc_serialize::json::ToJson;
-use json_utils::FromJson;
-use std::fs::File;
+mod parameters;
+mod generator;
+
+//use rustc_serialize::json::Json;
+//use rustc_serialize::json::ToJson;
+//use json_utils::FromJson;
+//use std::fs::File;
 
 // Note: If test fails, first check if floating point numbers match.
-
+/*
 #[test]
 fn sample_model() {
     let model = OdeModel { name: "Sample Model".to_string(),
@@ -312,4 +314,4 @@ fn ramp_approximation_no_points() {
             }
         )
     }.is_valid().unwrap())
-}
+}*/
