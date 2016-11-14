@@ -44,12 +44,14 @@ fn main() {
     let config = Config2::from_json(&Json::from_reader(&mut config_file).unwrap()).unwrap();
     let full_model = config.model;
     let model = full_model.compile();
-    let formula = config.formula;
+    let mut ctx = CheckerContext::new(model.clone());
+    let result = config.formulas.iter().map(|&AbstractPair { ref first, ref second }| {
+        println!("Verify: {:?}", second);
+        (first.clone(), check::<Order1>(&mut ctx, second))
+    }).collect::<Vec<(String, StateSet2<Order1>)>>();
     //println!["Verify: {:?}", formula];
     //println!["Model: {:?}", full_model];
-    let mut ctx = CheckerContext::new(model.clone());
-    let result = check::<Order1>(&mut ctx, &formula);
-    print_results(&model, &full_model, &formula, &result);
+    print_results(&model, &full_model, &result);
     //println!["{:?}", result.len()];
     /*unsafe {
         println!["Cache hit: {:?}/{:?}", EDGE_HIT, TOTAL_EDGE];
@@ -58,7 +60,12 @@ fn main() {
 
 struct Config2 {
     model: OdeModel,
-    formula: Formula
+    formulas: Vec<AbstractPair>
+}
+
+struct AbstractPair {
+    first: String,
+    second: Formula
 }
 
 impl FromJson<Config2> for Config2 {
@@ -66,58 +73,76 @@ impl FromJson<Config2> for Config2 {
         as_object(data, |map| {
             Ok(Config2 {
                 model: try![map.read_item::<OdeModel>("model")],
-                formula: try![map.read_item::<Formula>("formula")]
+                formulas: try![map.read_item::<Vec<AbstractPair>>("formulas")]
             })
         })
     }
 }
 
-fn print_results(model: &Model, full_model: &OdeModel, formula: &Formula, result: &StateSet2<Order1>) {
+impl FromJson<AbstractPair> for AbstractPair {
+    fn from_json(data: &Json) -> Result<AbstractPair, DecoderError> {
+        as_object(data, |map| {
+            Ok(AbstractPair {
+                first: try![map.read_item::<String>("first")],
+                second: try![map.read_item::<Formula>("second")]
+            })
+        })
+    }
+}
+
+fn print_results(model: &Model, full_model: &OdeModel, result: &Vec<(String, StateSet2<Order1>)>) {
     let mut color_counter: usize = 0;
     let mut state_counter: usize = 0;
     let mut colors = vec![];
     let mut color_indices: HashMap<Order1, usize> = HashMap::new();
     let mut states = vec![];
     let mut state_indices: HashMap<StateID, usize> = HashMap::new();
-    for (state, params) in result {
-        if !color_indices.contains_key(params) {
-            color_indices.insert(params.clone(), color_counter);
-            colors.push(params.clone());
-            color_counter += 1;
-        }
-        if !state_indices.contains_key(state) {
-            //print!["{:?},", state];
-            state_indices.insert(state.clone(), state_counter);
-            states.push(OutState {
-                id: state.clone(),
-                bounds: model.expand_state(state)
-            });
-            state_counter += 1;
+    for &(ref name, ref data) in result {
+        for (state, params) in data {
+            if !color_indices.contains_key(params) {
+                color_indices.insert(params.clone(), color_counter);
+                colors.push(params.clone());
+                color_counter += 1;
+            }
+            if !state_indices.contains_key(state) {
+                //print!["{:?},", state];
+                state_indices.insert(state.clone(), state_counter);
+                states.push(OutState {
+                    id: state.clone(),
+                    bounds: model.expand_state(state)
+                });
+                state_counter += 1;
+            }
         }
     }
     //println!["{:?}", colors.to_json().to_string()];
     //println!["{:?}", states.to_json().to_string()];
-    let f: Vec<R> = result.iter().map(|(s, p)| {
-        R {
-            state: state_indices[s],
-            param: color_indices[p]
-        }
-    }).collect();
     let k = ResultSet {
         variables: full_model.variables.iter().map(|i| i.name.clone()).collect(),
+        parameters: full_model.parameters.iter().map(|i| i.name.clone()).collect(),
+        _type: "rectangular".to_string(),
         thresholds: model.variables.clone(),
         states: states,
         params: colors,
-        results: vec![FormulaResult {
-            formula: "todo".to_string(),
-            data: f
-        }]
+        results: result.iter().map(|&(ref name, ref data)| {
+            FormulaResult {
+                formula: name.clone(),
+                data: data.iter().map(|(s, p)| {
+                    R {
+                        state: state_indices[s],
+                        param: color_indices[p]
+                    }
+                }).collect()
+            }
+        }).collect()
     };
     println!["{}", k.to_json()];
 }
 
 struct ResultSet {
     variables: Vec<String>,
+    parameters: Vec<String>,
+    _type: String,
     thresholds: Vec<Vec<f64>>,
     states: Vec<OutState>,
     params: Vec<Order1>,
@@ -129,8 +154,10 @@ impl ToJson for ResultSet {
         create_object(|map| {
             map.write_item("variables", &self.variables);
             map.write_item("thresholds", &self.thresholds);
+            map.write_item("type", &self._type);
+            map.write_item("parameters", &self.parameters);
             map.write_item("states", &self.states);
-            map.write_item("params", &self.params);
+            map.write_item("parameter_values", &self.params);
             map.write_item("results", &self.results);
         })
     }

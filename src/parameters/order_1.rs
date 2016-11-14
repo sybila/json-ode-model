@@ -316,10 +316,9 @@ impl ToJson for Clause {
 
 impl ToJson for Order1 {
     fn to_json(&self) -> Json {
-        create_object(|map| {
-            map.write_item("type", &"rectangular".to_string());
+        /*create_object(|map| {
             map.write_item("rectangles", &self.0);
-        })
-        //self.0.to_json()
+        })*/
+        self.0.to_json()
     }
 }
