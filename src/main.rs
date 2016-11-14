@@ -46,7 +46,7 @@ fn main() {
     let model = full_model.compile();
     let mut ctx = CheckerContext::new(model.clone());
     let result = config.formulas.iter().map(|&AbstractPair { ref first, ref second }| {
-        println!("Verify: {:?}", second);
+        //println!("Verify: {:?}", second);
         (first.clone(), check::<Order1>(&mut ctx, second))
     }).collect::<Vec<(String, StateSet2<Order1>)>>();
     //println!["Verify: {:?}", formula];
