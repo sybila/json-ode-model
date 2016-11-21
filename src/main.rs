@@ -47,7 +47,12 @@ fn main() {
     let mut ctx = CheckerContext::new(model.clone());
     let result = config.formulas.iter().map(|&AbstractPair { ref first, ref second }| {
         //println!("Verify: {:?}", second);
-        (first.clone(), check::<Order1>(&mut ctx, second))
+        let checked = check::<Order1>(&mut ctx, second);
+        let mut bounded = HashMap::new();
+        for (state, colors) in checked {
+            bounded.insert(state.clone(), colors.and(&Order1::model_bounds(&ctx.model)));
+        }
+        (first.clone(), bounded)
     }).collect::<Vec<(String, StateSet2<Order1>)>>();
     //println!["Verify: {:?}", formula];
     //println!["Model: {:?}", full_model];

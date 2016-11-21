@@ -20,7 +20,7 @@ pub fn initial_states<C: Colors + Debug>(model: &Model, proposition: &Propositio
    // println!["Initial states!"];
     match proposition {
         &False => HashMap::new(),
-        &True => enumerate_states(model, &0, &0, &(model.variables[0].len() - 1)),
+        &True => enumerate_states(model, &0, &0, &(model.variables[0].len() - 2)),
         &Equation(ref d, ref op, ref t) => {
             match op {
                 &CompareOp::LT => enumerate_states(model, d, &0, &(t - 1)),
